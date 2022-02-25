@@ -1,0 +1,15 @@
+```sh
+cd app/
+uvicorn main:app --reload
+```
+
+```sh
+docker build --tag ytdvr:latest .
+docker run \
+    -e YT_API_KEY=<api_key> \
+    -e YT_PLAYLIST_ID=<playlist_id> \
+    -v $(pwd)/save:/app/save
+    -p 8080:8000
+    --name ytdvr
+    ytdvr
+```
