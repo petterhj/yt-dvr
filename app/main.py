@@ -8,6 +8,7 @@ from fastapi import (
     HTTPException,
     status,
 )
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -51,6 +52,7 @@ def get_playlist_items(
 
 @app.on_event("startup")
 def on_startup():
+    logger.info("App startup")
     create_db_and_tables()
 
 
@@ -105,3 +107,10 @@ def process(
     background_tasks.add_task(download_videos, session, items)
     
     return items
+
+@app.get(
+    "/log",
+    response_class=FileResponse,
+)
+def log():
+    return os.path.join(os.environ["DATA_PATH"], "ytdvr.log")
