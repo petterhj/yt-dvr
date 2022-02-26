@@ -25,8 +25,9 @@ RUN mkdir -p /app/data
 RUN chown -R ytdvr /app
 
 ADD ./app /app
-ADD requirements.txt /app
-ADD entry-point.sh /app
+COPY ./requirements.txt /app/requirements.txt
+COPY ./entry-point.sh /app/entry-point.sh
+RUN chmod +x /app/entry-point.sh
 
 WORKDIR /app
 
