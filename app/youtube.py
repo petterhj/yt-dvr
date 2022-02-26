@@ -56,7 +56,7 @@ def progress_hook(progress):
     logger.debug("Progress: {} - {}/{} bytes".format(
         progress["status"],
         progress["downloaded_bytes"],
-        progress["total_bytes"],
+        progress.get("total_bytes", "?"),
     ))  
 
 
@@ -77,7 +77,7 @@ def download_videos(session, items: List[Item]):
                 ydl.extract_info(item.video_url)
         except Exception:
             item.job.failed_at = datetime.now()
-            logger.error(f"Error occured while downloading {item.video_id}")
+            logger.exception(f"Error occured while downloading {item.video_id}")
         else:
             item.job.downloaded_at = datetime.now()
             logger.success(f"Done downloading {item.video_id}")
