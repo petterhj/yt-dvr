@@ -4,8 +4,8 @@
 
 ```sh
 # .env
-OUTPUT_PATH=../
-DATA_PATH=../
+OUTPUT_PATH=../save/
+DATA_PATH=../data/
 YT_API_KEY=<api_key>
 YT_PLAYLIST_ID=<playlist_id>
 YT_PLAYLIST_MAX_COUNT=5

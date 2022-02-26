@@ -35,7 +35,6 @@ ydl_opts = {
     ],
     "call_home": False,
     'progress_hooks': [],
-    # ffmpeg_location
 }
 
 
