@@ -12,6 +12,7 @@ from config import (
     YT_OUTPUT_TEMPLATE,
     YT_PLAYLIST_ID,
     YT_PLAYLIST_MAX_COUNT,
+    YT_SUBTITLE_LANGS,
 )
 from models import Item, PlaylistItem
 
@@ -27,11 +28,16 @@ ydl_opts = {
         "home": OUTPUT_PATH,
     },
     "outtmpl": {"default": YT_OUTPUT_TEMPLATE},
+    "writesubtitles": True,
+    "writethumbnail": True,
+    # "subtitleslangs": YT_SUBTITLE_LANGS,
     "postprocessors": [
         {
             "key": "FFmpegVideoRemuxer",
             "preferedformat": "mkv",
         },
+        {"key": "FFmpegEmbedSubtitle"},
+        {"key": "EmbedThumbnail"},
         {
             # Embed metadata (yt_dlp.postprocessor.FFmpegMetadataPP)
             "key": "FFmpegMetadata",
@@ -39,6 +45,7 @@ ydl_opts = {
             "add_metadata": True,
         },
     ],
+    "simulate": False,
     "call_home": False,
     'progress_hooks': [],
 }
@@ -58,6 +65,9 @@ def get_playlist() -> List[PlaylistItem]:
 
 
 def progress_hook(progress):
+    if progress["status"] == "downloading":
+        return
+
     logger.debug("Progress: {} - {}/{} bytes".format(
         progress["status"],
         progress["downloaded_bytes"],

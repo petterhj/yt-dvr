@@ -14,3 +14,6 @@ YT_OUTPUT_TEMPLATE = os.getenv(
     "%(title)s [%(id)s].%(ext)s",
 )
 YT_DLP_REFERER = "https://www.google.com"
+YT_SUBTITLE_LANGS = os.getenv(
+    "YT_SUBTITLE_LANGS", "en,no"
+).split(",")
