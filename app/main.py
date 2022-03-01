@@ -1,4 +1,5 @@
 import os
+from io import BytesIO
 from typing import List
 
 from fastapi import (
@@ -8,21 +9,23 @@ from fastapi import (
     HTTPException,
     status,
 )
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from loguru import logger
+from lz.reversal import reverse
 
 from sqlmodel import Session
 
 load_dotenv()
 
-from models import DatabaseItem, DatabaseItemOut, Item, ItemOut
+from models import DatabaseItem, Item, ItemOut
 from database import create_db_and_tables, get_session
 from youtube import get_playlist, download_videos
 
 
 logger.add(
     os.path.join(os.environ["DATA_PATH"], "ytdvr.log"),
+    rotation="10 MB",
     retention="3 days",
     format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
 )
@@ -110,7 +113,19 @@ def process(
 
 @app.get(
     "/log",
-    response_class=FileResponse,
+    response_class=StreamingResponse,
 )
 def log():
-    return os.path.join(os.environ["DATA_PATH"], "ytdvr.log")
+    log_file = os.path.join(os.environ["DATA_PATH"], "ytdvr.log")
+
+    if not os.path.exists(log_file):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No log file found"
+        )
+    
+    with open(log_file, 'rb') as fh:
+        buf = BytesIO(fh.read())
+        log_data = reverse(buf)
+
+    return StreamingResponse(log_data, media_type="text/plain")

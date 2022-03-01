@@ -1,5 +1,6 @@
 fastapi
 loguru
+lz
 pydantic
 python-dotenv
 python-youtube
