@@ -10,7 +10,6 @@ class BaseItem(BaseModel):
     video_id: str
     title: str
     description: str
-    channel_id: str
     channel_title: str
     published_at: datetime
     thumbnail: str = None
@@ -18,7 +17,6 @@ class BaseItem(BaseModel):
 
 class PlaylistItem(BaseItem):
     video_id: str = Field(..., alias="resourceId")
-    channel_id: str = Field(..., alias="channelId")
     channel_title: str = Field(..., alias="videoOwnerChannelTitle")
     published_at: datetime = Field(..., alias="publishedAt")
     thumbnail: str = Field(None, alias="thumbnails")
@@ -61,12 +59,16 @@ class DatabaseItemOut(DatabaseItemBase):
 
 class Item(BaseItem):
     video_url: Optional[str]
+    channel_url: Optional[str]
     job: Optional[DatabaseItemBase]
 
     @validator("video_url", pre=True, always=True)
     def get_video_url(cls, v: str, values: dict):
         return f"https://www.youtube.com/watch?v={values['video_id']}"
 
+    @validator("channel_url", pre=True, always=True)
+    def get_channel_url(cls, v: str, values: dict):
+        return f"https://www.youtube.com/c/{values['channel_title']}"
 
 class ItemOut(Item):
     job: Optional[DatabaseItemOut]
