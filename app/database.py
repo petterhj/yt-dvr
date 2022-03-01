@@ -1,5 +1,3 @@
-import os
-
 from sqlmodel import (
     create_engine,
     select,
@@ -7,11 +5,15 @@ from sqlmodel import (
     SQLModel,
 )
 
+from config import DB_FILE_PATH
+
 
 engine = create_engine(
-    "sqlite:///" + os.path.join(os.environ["DATA_PATH"], "log.db"),
+    "sqlite:///" + DB_FILE_PATH,
     echo=True,
-    connect_args={"check_same_thread": False}
+    connect_args={
+        "check_same_thread": False,
+    }
 )
 
 
@@ -21,6 +23,8 @@ class Session(Session):
             select(entity).where(*criterion)
         ).first()
 
+    def count(self, entity, *criterion):
+        return self.query(entity).filter(*criterion).count()
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)

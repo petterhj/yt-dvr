@@ -9,22 +9,35 @@ from fastapi import (
     HTTPException,
     status,
 )
-from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
+from fastapi.responses import (
+    JSONResponse,
+    StreamingResponse,
+)
 from loguru import logger
 from lz.reversal import reverse
-
+from sqlalchemy import null
 from sqlmodel import Session
 
 load_dotenv()
 
+from config import (
+    CRON_SCHEDULE,
+    DATA_PATH,
+    DB_FILE_PATH,
+    LOG_FILE_PATH,
+    OUTPUT_PATH,
+    YT_OUTPUT_TEMPLATE,
+    YT_PLAYLIST_ID,
+    YT_PLAYLIST_MAX_COUNT,
+)
 from models import DatabaseItem, Item, ItemOut
 from database import create_db_and_tables, get_session
 from youtube import get_playlist, download_videos
 
 
 logger.add(
-    os.path.join(os.environ["DATA_PATH"], "ytdvr.log"),
+    LOG_FILE_PATH,
     rotation="10 MB",
     retention="3 days",
     format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
@@ -61,6 +74,42 @@ def on_startup():
 
 @app.get(
     "/",
+    response_class=JSONResponse,
+)
+def index(
+    session: Session = Depends(get_session),
+):
+    total_job_count = session.count(DatabaseItem)
+    completed_job_count = session.count(
+        DatabaseItem,
+        DatabaseItem.downloaded_at != null(),
+    )
+    failed_job_count = session.count(
+        DatabaseItem,
+        DatabaseItem.failed_at != null(),
+    )
+    
+    return JSONResponse({
+        "config": {
+            "playlist_id": YT_PLAYLIST_ID,
+            "max_video_count": YT_PLAYLIST_MAX_COUNT,
+            "cron_schedule": CRON_SCHEDULE,
+            "data_path": DATA_PATH,
+            "db_file_path": DB_FILE_PATH,
+            "log_file_path": LOG_FILE_PATH,
+            "output_template": YT_OUTPUT_TEMPLATE,
+            "output_path": OUTPUT_PATH,
+        },
+        "jobs": {
+            "total_count": total_job_count,
+            "completed_count": completed_job_count,
+            "failed_count": failed_job_count,
+        }
+    })
+
+
+@app.get(
+    "/videos",
     response_model=List[ItemOut],
     response_model_by_alias=False,
 )
@@ -71,7 +120,7 @@ def playlist(
 
 
 @app.get(
-    "/process",
+    "/videos/process",
     status_code=status.HTTP_202_ACCEPTED,
     response_model=List[ItemOut],
     response_model_by_alias=False,
@@ -111,20 +160,19 @@ def process(
     
     return items
 
+
 @app.get(
     "/log",
     response_class=StreamingResponse,
 )
 def log():
-    log_file = os.path.join(os.environ["DATA_PATH"], "ytdvr.log")
-
-    if not os.path.exists(log_file):
+    if not os.path.exists(LOG_FILE_PATH):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No log file found"
         )
     
-    with open(log_file, 'rb') as fh:
+    with open(LOG_FILE_PATH, 'rb') as fh:
         buf = BytesIO(fh.read())
         log_data = reverse(buf)
 

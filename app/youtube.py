@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 from typing import List
 
@@ -6,21 +5,28 @@ import yt_dlp
 from loguru import logger
 from pyyoutube import Api
 
+from config import (
+    OUTPUT_PATH,
+    YT_API_KEY,
+    YT_DLP_REFERER,
+    YT_OUTPUT_TEMPLATE,
+    YT_PLAYLIST_ID,
+    YT_PLAYLIST_MAX_COUNT,
+)
 from models import Item, PlaylistItem
 
 
-api = Api(api_key=os.environ["YT_API_KEY"])
+api = Api(api_key=YT_API_KEY)
 
-yt_dlp.utils.std_headers.update({'Referer': 'https://www.google.com'})
+yt_dlp.utils.std_headers.update({
+    "Referer": YT_DLP_REFERER,
+})
 
 ydl_opts = {
     "paths": {
-        "home": os.environ["OUTPUT_PATH"],
+        "home": OUTPUT_PATH,
     },
-    "outtmpl": {"default": os.getenv(
-        "YT_OUTPUT_TEMPLATE",
-        "%(title)s [%(id)s].%(ext)s",
-    )},
+    "outtmpl": {"default": YT_OUTPUT_TEMPLATE},
     "postprocessors": [
         {
             "key": "FFmpegVideoRemuxer",
@@ -40,8 +46,8 @@ ydl_opts = {
 
 def get_playlist() -> List[PlaylistItem]:
     playlist = api.get_playlist_items(
-        playlist_id=os.environ["YT_PLAYLIST_ID"],
-        count=int(os.getenv("YT_PLAYLIST_MAX_COUNT", 3)),
+        playlist_id=YT_PLAYLIST_ID,
+        count=YT_PLAYLIST_MAX_COUNT,
     )
 
     return [

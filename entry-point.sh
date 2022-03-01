@@ -2,7 +2,10 @@
 
 echo "Configuring cron job: ${CRON_SCHEDULE}"
 
-echo "${CRON_SCHEDULE} curl --silent http://localhost:8000/process >/dev/null 2>&1" >> ytdvr_cronjob
+echo "${CRON_SCHEDULE} curl \
+    --silent http://localhost:8000/videos/process \
+    >/dev/null 2>&1" >> ytdvr_cronjob
+
 crontab ytdvr_cronjob
 rm ytdvr_cronjob
 /etc/init.d/cron restart
