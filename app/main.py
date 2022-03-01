@@ -80,6 +80,12 @@ def index(
     session: Session = Depends(get_session),
 ):
     total_job_count = session.count(DatabaseItem)
+    ongoing_job_count = session.count(
+        DatabaseItem,
+        DatabaseItem.started_at != null(),
+        DatabaseItem.downloaded_at == null(),
+        DatabaseItem.failed_at == null(),
+    )
     completed_job_count = session.count(
         DatabaseItem,
         DatabaseItem.downloaded_at != null(),
@@ -102,6 +108,7 @@ def index(
         },
         "jobs": {
             "total_count": total_job_count,
+            "ongoing_count": ongoing_job_count,
             "completed_count": completed_job_count,
             "failed_count": failed_job_count,
         }
