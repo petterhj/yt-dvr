@@ -36,13 +36,21 @@ ydl_opts = {
             "key": "FFmpegVideoRemuxer",
             "preferedformat": "mkv",
         },
-        {"key": "FFmpegEmbedSubtitle"},
-        {"key": "EmbedThumbnail"},
         {
             # Embed metadata (yt_dlp.postprocessor.FFmpegMetadataPP)
             "key": "FFmpegMetadata",
             "add_chapters": True,
             "add_metadata": True,
+        },
+        {"key": "FFmpegEmbedSubtitle"},
+        {
+            "key": "FFmpegThumbnailsConvertor",
+            "format": "png",
+            "when": "before_dl",
+        },
+        {
+            "key": "EmbedThumbnail",
+            "already_have_thumbnail": True, # Keep thumbnail after embedding
         },
     ],
     "simulate": False,
