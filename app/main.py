@@ -10,6 +10,7 @@ from fastapi import (
     status,
 )
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (
     JSONResponse,
     StreamingResponse,
@@ -44,6 +45,15 @@ logger.add(
 )
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def get_playlist_items(
