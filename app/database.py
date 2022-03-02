@@ -1,35 +1,39 @@
 from sqlmodel import (
     create_engine,
     select,
-    Session,
     SQLModel,
 )
+from sqlalchemy import func
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from config import DB_FILE_PATH
 
 
-engine = create_engine(
-    "sqlite:///" + DB_FILE_PATH,
+engine = create_async_engine(
+    "sqlite+aiosqlite:///" + DB_FILE_PATH,
     echo=True,
-    connect_args={
-        "check_same_thread": False,
-    }
+    connect_args={"check_same_thread": False},
 )
 
 
-class Session(Session):
-    def first_or_none(self, entity, *criterion):
-        return self.exec(
+class Session(AsyncSession):
+    async def first_or_none(self, entity, *criterion):
+        return (await self.exec(
             select(entity).where(*criterion)
-        ).first()
+        )).first()
 
-    def count(self, entity, *criterion):
-        return self.query(entity).filter(*criterion).count()
+    async def count(self, entity, *criterion):
+        return (await self.exec(
+            select(func.count(entity.id)).where(*criterion)
+        )).one()
 
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
+
+async def create_db_and_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 
-def get_session():
-    with Session(engine) as session:
+async def get_session():
+    async with Session(engine) as session:
         yield session

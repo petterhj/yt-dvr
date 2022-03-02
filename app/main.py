@@ -56,7 +56,7 @@ app.add_middleware(
 )
 
 
-def get_playlist_items(
+async def get_playlist_items(
     session: Session = Depends(get_session),
 ) -> List[Item]:
     items = []
@@ -64,7 +64,7 @@ def get_playlist_items(
     for playlist_item in get_playlist():
         item = Item(**playlist_item.dict())
 
-        database_item = session.first_or_none(
+        database_item = await session.first_or_none(
             DatabaseItem,
             DatabaseItem.video_id == playlist_item.video_id,
         )
@@ -77,30 +77,30 @@ def get_playlist_items(
 
 
 @app.on_event("startup")
-def on_startup():
+async def on_startup():
     logger.info("App startup")
-    create_db_and_tables()
+    await create_db_and_tables()
 
 
 @app.get(
     "/",
     response_class=JSONResponse,
 )
-def index(
+async def index(
     session: Session = Depends(get_session),
 ):
-    total_job_count = session.count(DatabaseItem)
-    ongoing_job_count = session.count(
+    total_job_count = await session.count(DatabaseItem)
+    ongoing_job_count = await session.count(
         DatabaseItem,
         DatabaseItem.started_at != null(),
         DatabaseItem.downloaded_at == null(),
         DatabaseItem.failed_at == null(),
     )
-    completed_job_count = session.count(
+    completed_job_count = await session.count(
         DatabaseItem,
         DatabaseItem.downloaded_at != null(),
     )
-    failed_job_count = session.count(
+    failed_job_count = await session.count(
         DatabaseItem,
         DatabaseItem.failed_at != null(),
     )
@@ -130,7 +130,7 @@ def index(
     response_model=List[ItemOut],
     response_model_by_alias=False,
 )
-def playlist(
+async def playlist(
     items = Depends(get_playlist_items)
 ):
     return items
@@ -142,7 +142,7 @@ def playlist(
     response_model=List[ItemOut],
     response_model_by_alias=False,
 )
-def process(
+async def process(
     background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
     items = Depends(get_playlist_items),
@@ -163,7 +163,7 @@ def process(
         session.add(database_item)
         jobs.append(database_item)
         
-    session.commit()
+    await session.commit()
 
     for job in jobs:
         session.refresh(job)
@@ -182,7 +182,7 @@ def process(
     "/log",
     response_class=StreamingResponse,
 )
-def log():
+async def log():
     if not os.path.exists(LOG_FILE_PATH):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
