@@ -1,11 +1,15 @@
 import Vue from 'vue'
 
 export const state = () => ({
+  state: null,
   videos: {},
   connected: false,
 })
 
 export const mutations = {
+  SET_STATE(state, data) {
+    state.state = data
+  },
   SET_VIDEOS(state, data) {
     if (data.clear_current) {
       console.log("Clearing current video items")
@@ -52,6 +56,16 @@ export const mutations = {
 }
 
 export const actions = {
+  async getState({ commit }) {
+    console.log("Fetching state")
+
+    await this.$axios.get('/state')
+      .then((response) => {
+        commit('SET_STATE', response.data)
+      }, (error) => {
+        console.error(error);
+      })
+  },
   async getPlaylistVideos({ commit }) {
     console.log("Fetching playlist videos")
 
@@ -97,6 +111,7 @@ export const actions = {
 }
 
 export const getters = {
+  state: state => state.state,
   videos: state => state.videos,
   isConnected: state => state.connected,
 }

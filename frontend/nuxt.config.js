@@ -1,4 +1,5 @@
 import {
+  faList,
   faPlay,
   faSync,
   faTimes,
@@ -81,10 +82,10 @@ export default {
       // https://fontawesome.com/v5/search?m=free
       iconPack: 'fa',
       iconSet: {
+        faList,
         faPlay,
         faSync,
         faTimes, // cross
-        // faTrash,
         faVideo,
       }
     }

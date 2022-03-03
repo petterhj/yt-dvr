@@ -20,14 +20,11 @@ export default {
     })
   },
   methods: {
-     ...mapActions(['getPlaylistVideos']),
+     ...mapActions(['getState', 'getPlaylistVideos']),
   },
   created() {
+    this.getState()
     this.getPlaylistVideos()
   }
 }
 </script>
-
-<style lang="scss" scoped>
-
-</style>
