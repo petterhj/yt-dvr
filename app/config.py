@@ -17,3 +17,5 @@ YT_DLP_REFERER = "https://www.google.com"
 YT_SUBTITLE_LANGS = os.getenv(
     "YT_SUBTITLE_LANGS", "en,no"
 ).split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",")
+STATIC_FILES_PATH = os.environ["STATIC_FILES_PATH"]

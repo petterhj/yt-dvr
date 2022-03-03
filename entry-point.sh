@@ -3,7 +3,7 @@
 echo "Configuring cron job: ${CRON_SCHEDULE}"
 
 echo "${CRON_SCHEDULE} curl \
-    --silent http://localhost:8000/videos/process \
+    --silent http://localhost:8000/api/videos/process \
     >/dev/null 2>&1" >> ytdvr_cronjob
 
 crontab ytdvr_cronjob

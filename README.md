@@ -10,10 +10,18 @@ YT_API_KEY=<api_key>
 YT_PLAYLIST_ID=<playlist_id>
 YT_PLAYLIST_MAX_COUNT=5
 YT_OUTPUT_TEMPLATE=%(channel)s - %(title)s.%(ext)s
+ALLOWED_ORIGINS=http://localhost:3000
+STATIC_FILES_PATH=../frontend/dist
 ```
 ```sh
 cd app/
 uvicorn main:app --reload
+```
+
+```sh
+cd frontend/
+npm run dev
+npm run generate
 ```
 
 ## Docker

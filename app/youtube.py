@@ -1,8 +1,12 @@
+import json
 from datetime import datetime
 from typing import List
 
 import yt_dlp
 from loguru import logger
+import asyncio
+
+from fastapi.concurrency import run_in_threadpool
 from pyyoutube import Api
 
 from config import (
@@ -14,16 +18,15 @@ from config import (
     YT_PLAYLIST_MAX_COUNT,
     YT_SUBTITLE_LANGS,
 )
-from models import Item, PlaylistItem
+from models import (
+    Item,
+    PlaylistItem,
+    DatabaseItemOut,
+)
+from database import Session, engine
+from sio import sio
 
-
-api = Api(api_key=YT_API_KEY)
-
-yt_dlp.utils.std_headers.update({
-    "Referer": YT_DLP_REFERER,
-})
-
-ydl_opts = {
+DEFAULT_YLD_OPTS = {
     "paths": {
         "home": OUTPUT_PATH,
     },
@@ -55,8 +58,16 @@ ydl_opts = {
     ],
     "simulate": False,
     "call_home": False,
-    'progress_hooks': [],
+    "progress_hooks": [],
+    "postprocessor_hooks": [],
 }
+
+
+api = Api(api_key=YT_API_KEY)
+
+yt_dlp.utils.std_headers.update({
+    "Referer": YT_DLP_REFERER,
+})
 
 
 def get_playlist() -> List[PlaylistItem]:
@@ -72,32 +83,82 @@ def get_playlist() -> List[PlaylistItem]:
     ]
 
 
-def progress_hook(progress):
-    if progress["status"] == "downloading":
-        return
+class DownloadTask:
+    def __init__(self, item: Item):
+        self.opts = DEFAULT_YLD_OPTS
+        # self.session = session
+        self.item = item
+        self.loop = asyncio.get_running_loop()
 
-    logger.debug("Progress: {} - {}/{} bytes".format(
-        progress["status"],
-        progress["downloaded_bytes"],
-        progress.get("total_bytes", "?"),
-    ))  
+        self.opts["progress_hooks"].append(self.progress_hook)
+        self.opts["postprocessor_hooks"].append(self.progress_hook)
 
+    def progress_hook(self, progress):
+        status = progress["status"]
+        info = progress["info_dict"]
+        video_id = info.get("id", info.get("video_id"))
+        postprocessor = progress.get("postprocessor")
 
-def download_videos(session, items: List[Item]):
-    for i, item in enumerate(items, 1):
-        logger.info("Starting job {}/{} (#{}): {}".format(
-            i, len(items), item.job.id, item.video_id
-        ))
+        if not video_id:
+            logger.error("Video ID could not be determined")
+            return
+
+        total_bytes = progress.get("total_bytes")
+        downloaded_bytes = progress.get("downloaded_bytes")
+        percent = None
+
+        if total_bytes and downloaded_bytes:
+            percent = round((int(downloaded_bytes) / int(total_bytes)) * 100)
+
+        self.loop.create_task(sio.emit("progress_update", {
+            "video_id": video_id,
+            "progress": {
+                "processor": postprocessor or "downloader",
+                "status": status,
+                "total_bytes": total_bytes,
+                "downloaded_bytes": downloaded_bytes,
+                "percent": percent,
+            }
+        }))
+
+        # if progress["status"] == "downloading":
+        #     return
+
+        # logger.debug("Progress: {} - {}/{} bytes".format(
+        #     progress["status"],
+        #     progress["downloaded_bytes"],
+        #     progress.get("total_bytes", "?"),
+        # ))
+
+    async def run(self):
+        item = self.item
+        print("-" * 100)
+        print(item)
+        # print("-" * 25)
+        # print(session)
+        print("-" * 100)
+        # for i, item in enumerate(self.items, 1):
+        # logger.info("Starting job {}/{} (#{}): {}".format(
+        #     i, len(self.items), item.job.id, item.video_id
+        # ))
+        logger.info(f"Starting job (#{item.job.id}): {item.video_id}")
         logger.debug(f"Title: {item.title}")
 
         item.job.started_at = datetime.now()
-        session.add(item.job)
-        session.commit()
+        async with Session(engine) as session:
+            session.add(item.job)
+            await session.commit()
+            await session.refresh(item.job)
+
+        await sio.emit("progress_update", {
+            "video_id": item.video_id,
+            "job": json.loads(
+                DatabaseItemOut(**item.job.dict()).json()
+            ),
+        })
 
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.add_progress_hook(progress_hook)
-                ydl.extract_info(item.video_url)
+            await run_in_threadpool(lambda: self._download(item))
         except Exception:
             item.job.failed_at = datetime.now()
             logger.exception(f"Error occured while downloading {item.video_id}")
@@ -105,5 +166,20 @@ def download_videos(session, items: List[Item]):
             item.job.downloaded_at = datetime.now()
             logger.success(f"Done downloading {item.video_id}")
 
-        session.add(item.job)
-        session.commit()
+        async with Session(engine) as session:
+            session.add(item.job)
+            await session.commit()
+            await session.refresh(item.job)
+
+        await sio.emit("progress_update", {
+            "video_id": item.video_id,
+            "job": json.loads(
+                DatabaseItemOut(**item.job.dict()).json()
+            ),
+        })
+
+        logger.info(f"Job ended for {item.video_id}")
+
+    def _download(self, item: Item):
+        with yt_dlp.YoutubeDL(self.opts) as ydl:
+            ydl.extract_info(item.video_url)

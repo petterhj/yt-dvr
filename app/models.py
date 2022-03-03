@@ -11,14 +11,14 @@ class BaseItem(BaseModel):
     title: str
     description: str
     channel_title: str
-    published_at: datetime
+    added_at: datetime
     thumbnail: str = None
 
 
 class PlaylistItem(BaseItem):
     video_id: str = Field(..., alias="resourceId")
     channel_title: str = Field(..., alias="videoOwnerChannelTitle")
-    published_at: datetime = Field(..., alias="publishedAt")
+    added_at: datetime = Field(..., alias="publishedAt")
     thumbnail: str = Field(None, alias="thumbnails")
 
     @validator("video_id", pre=True)
