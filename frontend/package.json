@@ -19,8 +19,6 @@
     "vue-socket.io-extended": "^4.2.0"
   },
   "devDependencies": {
-    "chakra-loader": "^1.0.3",
-    "sass": "^1.43.3",
-    "sass-loader": "^10.1.1"
+    "chakra-loader": "^1.0.3"
   }
 }
