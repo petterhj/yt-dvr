@@ -4,6 +4,7 @@ loguru
 lz
 pydantic
 python-dotenv
+python-socketio
 python-youtube
 sqlmodel
 uvicorn[standard]

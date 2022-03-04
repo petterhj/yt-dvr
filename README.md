@@ -1,6 +1,6 @@
 # yt-dvr
 
-## Local
+## Development
 
 ```sh
 # .env
@@ -13,14 +13,22 @@ YT_OUTPUT_TEMPLATE=%(channel)s - %(title)s.%(ext)s
 ALLOWED_ORIGINS=http://localhost:3000
 STATIC_FILES_PATH=../frontend/dist
 ```
+
 ```sh
-cd app/
+cd backend/
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
 uvicorn main:app --reload
 ```
 
 ```sh
 cd frontend/
+npm install
+
 npm run dev
+
 npm run generate
 ```
 
