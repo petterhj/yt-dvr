@@ -40,10 +40,7 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
-// .item:nth-child(even) {
-//   background: rgba(255, 255, 255, 0.025);
-// }
+<style lang="css" scoped>
 .item {
   border-bottom: 2px solid #2D3748;
 }

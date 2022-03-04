@@ -16,7 +16,7 @@ from config import (
     YT_OUTPUT_TEMPLATE,
     YT_PLAYLIST_ID,
     YT_PLAYLIST_MAX_COUNT,
-    YT_SUBTITLE_LANGS,
+    # YT_SUBTITLE_LANGS,
 )
 from models import (
     Item,
@@ -86,7 +86,6 @@ def get_playlist() -> List[PlaylistItem]:
 class DownloadTask:
     def __init__(self, item: Item):
         self.opts = DEFAULT_YLD_OPTS
-        # self.session = session
         self.item = item
         self.loop = asyncio.get_running_loop()
 
@@ -131,54 +130,44 @@ class DownloadTask:
         # ))
 
     async def run(self):
-        item = self.item
-        print("-" * 100)
-        print(item)
-        # print("-" * 25)
-        # print(session)
-        print("-" * 100)
-        # for i, item in enumerate(self.items, 1):
-        # logger.info("Starting job {}/{} (#{}): {}".format(
-        #     i, len(self.items), item.job.id, item.video_id
-        # ))
-        logger.info(f"Starting job (#{item.job.id}): {item.video_id}")
-        logger.debug(f"Title: {item.title}")
+        logger.info(f"Starting job (#{self.item.job.id}): {self.item.video_id}")
+        logger.debug(f"Title: {self.item.title}")
 
-        item.job.started_at = datetime.now()
+        self.item.job.started_at = datetime.now()
         async with Session(engine) as session:
-            session.add(item.job)
+            session.add(self.item.job)
             await session.commit()
-            await session.refresh(item.job)
+            await session.refresh(self.item.job)
 
         await sio.emit("progress_update", {
-            "video_id": item.video_id,
+            "video_id": self.item.video_id,
             "job": json.loads(
-                DatabaseItemOut(**item.job.dict()).json()
+                DatabaseItemOut(**self.item.job.dict()).json()
             ),
         })
 
         try:
-            await run_in_threadpool(lambda: self._download(item))
+            await run_in_threadpool(lambda: self._download(self.item))
         except Exception:
-            item.job.failed_at = datetime.now()
-            logger.exception(f"Error occured while downloading {item.video_id}")
+            self.item.job.failed_at = datetime.now()
+            logger.exception(f"Error occured while downloading {self.item.video_id}")
         else:
-            item.job.downloaded_at = datetime.now()
-            logger.success(f"Done downloading {item.video_id}")
+            self.item.job.downloaded_at = datetime.now()
+            logger.success(f"Done downloading {self.item.video_id}")
 
         async with Session(engine) as session:
-            session.add(item.job)
+            session.add(self.item.job)
             await session.commit()
-            await session.refresh(item.job)
+            await session.refresh(self.item.job)
 
         await sio.emit("progress_update", {
-            "video_id": item.video_id,
+            "video_id": self.item.video_id,
             "job": json.loads(
-                DatabaseItemOut(**item.job.dict()).json()
+                DatabaseItemOut(**self.item.job.dict()).json()
             ),
         })
 
-        logger.info(f"Job ended for {item.video_id}")
+        logger.info(f"Job ended for {self.item.video_id}")
 
     def _download(self, item: Item):
         with yt_dlp.YoutubeDL(self.opts) as ydl:

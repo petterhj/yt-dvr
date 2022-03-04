@@ -1,3 +1,13 @@
+FROM node:16-alpine AS build_frontend
+
+COPY ./frontend /src
+
+WORKDIR /src
+
+RUN npm ci --production
+RUN npm run generate
+
+
 FROM debian:sid-slim
 
 ENV PUID=1000
@@ -9,23 +19,23 @@ ENV YT_API_KEY=
 ENV YT_PLAYLIST_ID=
 ENV YT_PLAYLIST_MAX_COUNT=10
 ENV YT_OUTPUT_TEMPLATE="%(channel)s - %(title)s.%(ext)s"
+ENV STATIC_FILES_PATH=/app/static
 
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y gosu python3 python3-pip ffmpeg cron curl; \
 	rm -rf /var/lib/apt/lists/*; \
-    # verify that the binary works
 	gosu nobody true
 
-RUN useradd -u $PUID -U -d /src -s /bin/false ytdvr && \
-    usermod -G users ytdvr
+RUN mkdir -p /app/static && mkdir /app/save && mkdir /app/data
 
-RUN mkdir -p /app/save
-RUN mkdir -p /app/data
-RUN chown -R ytdvr /app
+RUN useradd -u $PUID -U -d /app -s /bin/false ytdvr && \
+    usermod -G users ytdvr && \
+    chown -R ytdvr /app
 
-ADD ./app /app
-COPY ./requirements.txt /app/requirements.txt
+ADD ./backend /app
+COPY --from=build_frontend /src/dist /app/static
+
 COPY ./entry-point.sh /app/entry-point.sh
 RUN chmod +x /app/entry-point.sh
 

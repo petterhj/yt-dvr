@@ -9,10 +9,12 @@ from fastapi import (
 )
 from fastapi.responses import JSONResponse
 from loguru import logger
+from pyyoutube.error import PyYouTubeException
 from sqlmodel import Session
 from sqlalchemy import null
 
 from config import (
+    ALLOWED_ORIGINS,
     CRON_SCHEDULE,
     DATA_PATH,
     DB_FILE_PATH,
@@ -38,9 +40,18 @@ router = APIRouter(prefix="/api")
 async def get_playlist_items(
     session: Session = Depends(get_session),
 ) -> List[Item]:
+    try:
+        playlist = get_playlist()
+    except PyYouTubeException as error:
+        logger.error(error)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error.message,
+        )
+
     items = []
 
-    for playlist_item in get_playlist():
+    for playlist_item in playlist:
         item = Item(**playlist_item.dict())
 
         database_item = await session.first_or_none(
@@ -105,6 +116,7 @@ async def state(
             "log_file_path": LOG_FILE_PATH,
             "output_template": YT_OUTPUT_TEMPLATE,
             "output_path": OUTPUT_PATH,
+            "allowed_origins": ALLOWED_ORIGINS,
         },
         "jobs": {
             "total_count": total_job_count,
