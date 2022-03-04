@@ -60,7 +60,7 @@ export default {
               if (progress.percent)
                 return `Downloading: ${progress.percent} %`
               else
-                return "Downloading..."
+                return `Downloading (${progress.downloaded_bytes} bytes)...`
             else
               return `Downloading: ${progress.status}`
           }
