@@ -1,3 +1,4 @@
+from loguru import logger
 from socketio import (
     AsyncServer,
     ASGIApp,
@@ -10,7 +11,9 @@ socket_app = ASGIApp(sio)
 
 @sio.on("connect")
 async def connect(sid, environ):
-    print("CONNECT---------------------------")
-    print(sid)
-    print(environ)
-    print("----------------------------------")
+    logger.info(f"Socket client connected (sid={sid})")
+
+
+@sio.on("disconnect")
+async def disconnect(sid):
+    logger.info(f"Socket client disconnected (sid={sid})")
