@@ -14,6 +14,7 @@ from sqlmodel import Session
 from sqlalchemy import null
 
 from config import (
+    ALLOWED_ORIGINS,
     CRON_SCHEDULE,
     DATA_PATH,
     DB_FILE_PATH,
@@ -115,6 +116,7 @@ async def state(
             "log_file_path": LOG_FILE_PATH,
             "output_template": YT_OUTPUT_TEMPLATE,
             "output_path": OUTPUT_PATH,
+            "allowed_origins": ALLOWED_ORIGINS,
         },
         "jobs": {
             "total_count": total_job_count,
