@@ -74,7 +74,7 @@ export default {
         if (this.item.job.downloaded_at)
           return 'Completed at ' + this.$dayjs(this.item.job.downloaded_at).format('DD.MM.YY - HH:MM:ss')
         if (this.item.job.failed_at)
-          return 'Failed at ' + this.$dayjs(this.item.job.downloaded_at).format('DD.MM.YY - HH:MM:ss')
+          return 'Failed at ' + this.$dayjs(this.item.job.failed_at).format('DD.MM.YY - HH:MM:ss')
       }
     },
     progressPercent() {

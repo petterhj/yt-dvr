@@ -156,17 +156,22 @@ async def process(
         logger.info("No items to process")
         return []
 
-    logger.debug(f"Preparing to process {len(items)} items(s)")
+    logger.info(f"Preparing to process {len(items)} items(s)")
 
     for item in items:
+        logger.debug(f"> Video {item.video_id}, job={item.job.id if item.job else None}")
+
         if item.job:
+            logger.debug(f"Job exists for {item.video_id}, id={item.job.id}")
             jobs.append(item.job)
             continue
 
+        logger.debug(f"Creating new job for {item.video_id}")
         database_item = DatabaseItem(
             video_id=item.video_id
         )
         session.add(database_item)
+        print("!"*10, database_item)
         jobs.append(database_item)
 
     await session.commit()

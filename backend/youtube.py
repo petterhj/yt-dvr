@@ -71,16 +71,19 @@ yt_dlp.utils.std_headers.update({
 
 
 def get_playlist() -> List[PlaylistItem]:
-    playlist = api.get_playlist_items(
+    items = {}
+
+    for item in api.get_playlist_items(
         playlist_id=YT_PLAYLIST_ID,
         count=YT_PLAYLIST_MAX_COUNT,
-    )
+    ).items:
+        video = item.snippet.to_dict()
+        video_id = video["resourceId"]["videoId"]
+        if video_id in items:
+            continue
+        items[video_id] = PlaylistItem(**video)
 
-    return [
-        PlaylistItem(
-            **video.snippet.to_dict()
-        ) for video in playlist.items
-    ]
+    return items.values()
 
 
 class DownloadTask:
@@ -119,15 +122,6 @@ class DownloadTask:
                 "percent": percent,
             }
         }))
-
-        # if progress["status"] == "downloading":
-        #     return
-
-        # logger.debug("Progress: {} - {}/{} bytes".format(
-        #     progress["status"],
-        #     progress["downloaded_bytes"],
-        #     progress.get("total_bytes", "?"),
-        # ))
 
     async def run(self):
         logger.info(f"Starting job (#{self.item.job.id}): {self.item.video_id}")
