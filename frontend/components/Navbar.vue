@@ -70,6 +70,7 @@
           aria-label="Refresh videos"
           title="Refresh videos"
           icon="sync"
+          :disabled="!isConnected"
           @click="this.getPlaylistVideos"
         />
       </c-box>
@@ -79,6 +80,7 @@
           aria-label="Process videos"
           title="Process videos"
           icon="play"
+          :disabled="!isConnected"
           @click="this.processVideos"
         />
       </c-box>

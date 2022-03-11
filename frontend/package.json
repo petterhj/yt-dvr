@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "API_BASE_URL=http://localhost:8000 nuxt",
+    "dev": "cross-env API_BASE_URL=http://localhost:8000 nuxt",
     "build": "nuxt build",
     "start": "nuxt start",
     "generate": "nuxt generate"
@@ -19,6 +19,7 @@
     "vue-socket.io-extended": "^4.2.0"
   },
   "devDependencies": {
-    "chakra-loader": "^1.0.3"
+    "chakra-loader": "^1.0.3",
+    "cross-env": "^7.0.3"
   }
 }

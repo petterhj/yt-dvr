@@ -15,16 +15,18 @@ import { mapGetters, mapActions } from "vuex"
 
 export default {
   computed: {
-    ...mapGetters({
-      videos: 'videos'
-    })
+    ...mapGetters(['isConnected', 'videos'])
+  },
+  watch: {
+    isConnected(connected) {
+      if (connected) {
+        this.getState()
+        this.getPlaylistVideos()
+      }
+    }
   },
   methods: {
      ...mapActions(['getState', 'getPlaylistVideos']),
-  },
-  created() {
-    this.getState()
-    this.getPlaylistVideos()
   }
 }
 </script>

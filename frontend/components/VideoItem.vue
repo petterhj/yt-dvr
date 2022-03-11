@@ -42,6 +42,6 @@ export default {
 
 <style lang="css" scoped>
 .item {
-  border-bottom: 2px solid #2D3748;
+  border-bottom: 2px solid #242b37;
 }
 </style>
