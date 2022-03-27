@@ -38,14 +38,14 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-uvicorn main:app --reload
+uvicorn main:app --reload --port 8000
 ```
 
 ```sh
 cd frontend/
 npm install
 
-npm run dev
+API_BASE_URL=http://localhost:8000 npm run dev
 
 npm run generate
 ```
