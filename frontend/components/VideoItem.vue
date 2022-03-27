@@ -17,9 +17,11 @@
           {{ item.title }}
         </c-link><br>
         <c-text color="gray.500" font-size="sm" style="margin-left: 36px;" mt="1">
-          <c-link :href="item.channel_url" is-external>
-            <b>{{ item.channel_title }}</b>
-          </c-link> - {{ $dayjs(item.added_at).format('DD.MM.YY - HH:MM:ss') }}
+          <template v-if="item.channel_title">
+            <c-link :href="item.channel_url" is-external>
+              <b>{{ item.channel_title }}</b>
+            </c-link> -
+          </template>{{ $dayjs(item.added_at).format('DD.MM.YY - HH:MM:ss') }}
         </c-text>
       </c-text>
     </c-box>
