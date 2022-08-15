@@ -18,7 +18,7 @@ ENV CRON_SCHEDULE="0 */12 * * *"
 ENV YT_API_KEY=
 ENV YT_PLAYLIST_ID=
 ENV YT_PLAYLIST_MAX_COUNT=10
-ENV YT_OUTPUT_TEMPLATE="%(channel)s - %(title)s.%(ext)s"
+ENV YT_OUTPUT_TEMPLATE="%(channel)s - %(upload_date>%Y-%m-%d)s - %(title)s.%(ext)s"
 ENV STATIC_FILES_PATH=/app/static
 
 RUN set -eux; \

@@ -11,7 +11,7 @@ YT_PLAYLIST_ID = os.environ["YT_PLAYLIST_ID"]
 YT_PLAYLIST_MAX_COUNT = int(os.getenv("YT_PLAYLIST_MAX_COUNT", 3))
 YT_OUTPUT_TEMPLATE = os.getenv(
     "YT_OUTPUT_TEMPLATE",
-    "%(title)s [%(id)s].%(ext)s",
+    "%(channel)s - %(upload_date>%Y-%m-%d)s - %(title)s.%(ext)s",
 )
 YT_DLP_REFERER = "https://www.google.com"
 YT_SUBTITLE_LANGS = os.getenv(
