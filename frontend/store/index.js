@@ -37,10 +37,14 @@ export const mutations = {
   },
   SOCKET_PROGRESS_UPDATE(state, data) {
     if (data.video_id in state.videos) {
-      if (data.job)
+      if (data.job) {
         Vue.set(state.videos[data.video_id], 'job', data.job)
+        if (data.job.failed_at) {
+          this.app.$toast.error(`Job failed: "${state.videos[data.video_id].title}"`)
+        }
+      }
       if (data.progress) {
-        console.log(
+        console.debug(
           data.progress.processor, ' | ',
           data.progress.status, ' | ',
           data.progress.downloaded_bytes, ' / ',
@@ -64,6 +68,7 @@ export const actions = {
         commit('SET_STATE', response.data)
       }, (error) => {
         console.error(error);
+        this.app.$toast.error(`${error.config.method.toUpperCase()} ${error.config.url}: ${error.message}`)
       })
   },
   async getPlaylistVideos({ commit }) {
@@ -77,6 +82,7 @@ export const actions = {
         })
       }, (error) => {
         console.error(error);
+        this.app.$toast.error(`${error.config.method.toUpperCase()} ${error.config.url}: ${error.message}`)
       })
   },
   async processVideos({ commit }) {
@@ -92,9 +98,13 @@ export const actions = {
           })
         } else {
           console.log("Nothing to do!")
+          this.app.$toast.info('No new videos to process', {
+            duration: 3000
+          })
         }
       }, (error) => {
         console.error(error);
+        this.app.$toast.error(`${error.config.method.toUpperCase()} ${error.config.url}: ${error.message}`)
       })
   },
   async clearJob({ commit }, video_id) {
@@ -106,6 +116,7 @@ export const actions = {
         commit('CLEAR_JOB', video_id)
       }, (error) => {
         console.error(error);
+        this.app.$toast.error(`${error.config.method.toUpperCase()} ${error.config.url}: ${error.message}`)
       })
   }
 }

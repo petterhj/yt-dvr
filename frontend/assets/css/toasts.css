@@ -1,0 +1,12 @@
+.toasted, .toasted a {
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+.toasted.info {
+  background-color: #7DB1FF !important;
+}
+.toasted.error {
+  background-color: #EE919A !important;
+}
+.toasted.success {
+  background-color: #9FDDB9 !important;
+}

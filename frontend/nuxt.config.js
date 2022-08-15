@@ -32,6 +32,7 @@ export default {
 
   // Global CSS: https://go.nuxtjs.dev/config-css
   css: [
+    '@/assets/css/toasts.css',
   ],
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
@@ -56,6 +57,8 @@ export default {
     '@nuxtjs/axios',
     // https://www.npmjs.com/package/@nuxtjs/dayjs
     '@nuxtjs/dayjs',
+    // https://www.npmjs.com/package/@nuxtjs/toast
+    '@nuxtjs/toast',
   ],
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
@@ -95,6 +98,18 @@ export default {
       // 'utc', // import 'dayjs/plugin/utc'
       'timezone' // import 'dayjs/plugin/timezone'
     ]
+  },
+
+  // Toast: https://www.npmjs.com/package/@nuxtjs/toast
+  toast: {
+    position: 'bottom-center',
+    action : {
+      text : 'OK',
+      onClick : (e, toastObject) => {
+          toastObject.goAway(0);
+      }
+  },
+    // duration: 5000,
   },
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
