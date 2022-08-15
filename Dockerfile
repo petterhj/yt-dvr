@@ -19,6 +19,8 @@ ENV YT_API_KEY=
 ENV YT_PLAYLIST_ID=
 ENV YT_PLAYLIST_MAX_COUNT=10
 ENV YT_OUTPUT_TEMPLATE="%(channel)s - %(upload_date>%Y-%m-%d)s - %(title)s.%(ext)s"
+ENV GOTIFY_BASE_URL=
+ENV GOTIFY_APP_TOKEN=
 ENV STATIC_FILES_PATH=/app/static
 
 RUN set -eux; \

@@ -18,12 +18,13 @@ from config import (
     YT_PLAYLIST_MAX_COUNT,
     # YT_SUBTITLE_LANGS,
 )
+from database import Session, engine
 from models import (
     Item,
     PlaylistItem,
     DatabaseItemOut,
 )
-from database import Session, engine
+from notify import send_notification
 from sio import sio
 
 DEFAULT_YLD_OPTS = {
@@ -145,9 +146,11 @@ class DownloadTask:
         except Exception:
             self.item.job.failed_at = datetime.now()
             logger.exception(f"Error occured while downloading {self.item.video_id}")
+            await send_notification(f"YouTube video download failed: {self.item.title}")
         else:
             self.item.job.downloaded_at = datetime.now()
             logger.success(f"Done downloading {self.item.video_id}")
+            await send_notification(f"New YouTube video downloaded: {self.item.title}")
 
         async with Session(engine) as session:
             session.add(self.item.job)
