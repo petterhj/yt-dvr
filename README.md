@@ -62,3 +62,8 @@ API_BASE_URL=http://localhost:8000 npm run dev
 
 npm run generate
 ```
+
+#### API
+
+* `GET /api/state` - Returns config and job status.
+* `GET /api/videos` - 

@@ -4,10 +4,12 @@ from sqlmodel import (
     SQLModel,
 )
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from config import DB_FILE_PATH
+from models import Item
 
 
 engine = create_async_engine(
@@ -19,14 +21,18 @@ engine = create_async_engine(
 
 class Session(AsyncSession):
     async def first_or_none(self, entity, *criterion):
-        return (await self.exec(
-            select(entity).where(*criterion)
-        )).first()
+        statement = select(entity).where(*criterion)
+        return (await self.exec(statement)).first()
 
     async def count(self, entity, *criterion):
         return (await self.exec(
             select(func.count(entity.id)).where(*criterion)
         )).one()
+
+    async def query(self, entity, *criterion):
+        statement = select(entity).where(*criterion)
+        results = await self.exec(statement)
+        return results.all()
 
 
 async def create_db_and_tables():

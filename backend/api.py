@@ -9,9 +9,8 @@ from fastapi import (
 )
 from fastapi.responses import JSONResponse
 from loguru import logger
-from pyyoutube.error import PyYouTubeException
 from sqlmodel import Session
-from sqlalchemy import null
+from sqlalchemy.exc import IntegrityError
 
 from config import (
     ALLOWED_ORIGINS,
@@ -25,62 +24,32 @@ from config import (
     YT_PLAYLIST_MAX_COUNT,
 )
 from models import (
-    DatabaseItem,
-    DatabaseItemOut,
     Item,
+    ItemIn,
     ItemOut,
+    ItemOutWithJobs,
+    Job,
+    JobOut,
+    JobOutWithItem,
+    JobStatus,
 )
 from database import get_session
-from youtube import get_playlist, DownloadTask
+from exceptions import ItemNotFoundError
+from items import get_items, get_item
+from jobs import (
+    add_job,
+    get_jobs,
+    get_started_jobs,
+    # get_started_job,
+    status_filter,
+)
+from sources import SOURCES
 
 
 router = APIRouter(prefix="/api")
 
-
-async def get_playlist_items(
-    session: Session = Depends(get_session),
-) -> List[Item]:
-    try:
-        playlist = get_playlist()
-    except PyYouTubeException as error:
-        logger.error(error)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error.message,
-        )
-
-    items = []
-
-    for playlist_item in playlist:
-        item = Item(**playlist_item.dict())
-
-        database_item = await session.first_or_none(
-            DatabaseItem,
-            DatabaseItem.video_id == playlist_item.video_id,
-        )
-
-        item.job = database_item if database_item else None
-
-        items.append(item)
-
-    return items
-
-
-async def get_job(
-    video_id: str,
-    session: Session = Depends(get_session),
-) -> DatabaseItem:
-    job = await session.first_or_none(
-        DatabaseItem, DatabaseItem.video_id == video_id
-    )
-
-    if job:
-        return job
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"No job found for video {video_id}",
-    )
+for source in SOURCES.values():
+    router.include_router(source.router)
 
 
 @router.get(
@@ -90,26 +59,15 @@ async def get_job(
 async def state(
     session: Session = Depends(get_session),
 ):
-    total_job_count = await session.count(DatabaseItem)
-    ongoing_job_count = await session.count(
-        DatabaseItem,
-        DatabaseItem.started_at != null(),
-        DatabaseItem.downloaded_at == null(),
-        DatabaseItem.failed_at == null(),
-    )
-    completed_job_count = await session.count(
-        DatabaseItem,
-        DatabaseItem.downloaded_at != null(),
-    )
-    failed_job_count = await session.count(
-        DatabaseItem,
-        DatabaseItem.failed_at != null(),
-    )
+    total_job_count = await session.count(Job)
+    new_job_count = await session.count(Job, *status_filter(JobStatus.NEW))
+    queued_job_count = await session.count(Job, *status_filter(JobStatus.QUEUED))
+    started_job_count = await session.count(Job, *status_filter(JobStatus.STARTED))
+    downloaded_job_count = await session.count(Job, *status_filter(JobStatus.DOWNLOADED))
+    failed_job_count = await session.count(Job, *status_filter(JobStatus.FAILED))
 
     return JSONResponse({
         "config": {
-            "playlist_id": YT_PLAYLIST_ID,
-            "max_video_count": YT_PLAYLIST_MAX_COUNT,
             "cron_schedule": CRON_SCHEDULE,
             "data_path": DATA_PATH,
             "db_file_path": DB_FILE_PATH,
@@ -117,103 +75,137 @@ async def state(
             "output_template": YT_OUTPUT_TEMPLATE,
             "output_path": OUTPUT_PATH,
             "allowed_origins": ALLOWED_ORIGINS,
+            "sources": {
+                name: source.get_config() for name, source in SOURCES.items()
+            },
         },
         "jobs": {
             "total_count": total_job_count,
-            "ongoing_count": ongoing_job_count,
-            "completed_count": completed_job_count,
+            "new_count": new_job_count,
+            "queued_count": queued_job_count,
+            "started_count": started_job_count,
+            "downloaded_count": downloaded_job_count,
             "failed_count": failed_job_count,
         }
     })
 
 
 @router.get(
-    "/videos",
-    response_model=List[ItemOut],
+    "/items",
+    response_model=list[ItemOutWithJobs],
     response_model_by_alias=False,
 )
-async def playlist(
-    items = Depends(get_playlist_items)
+async def items(
+    items: list[Item] = Depends(get_items),
 ):
     return items
 
 
-@router.get(
-    "/videos/process",
-    status_code=status.HTTP_202_ACCEPTED,
-    response_model=List[ItemOut],
+@router.post(
+    "/items",
+    response_model=ItemOutWithJobs,
     response_model_by_alias=False,
 )
-async def process(
-    background_tasks: BackgroundTasks,
+async def add_item(
+    item_in: ItemIn,
     session: Session = Depends(get_session),
-    items = Depends(get_playlist_items),
 ):
-    items = [item for item in items if not item.job or not item.job.started_at]
-    jobs = []
+    source = SOURCES.get(item_in.source)
 
-    if len(items) == 0:
-        logger.info("No items to process")
-        return []
-
-    logger.info(f"Preparing to process {len(items)} items(s)")
-
-    for item in items:
-        logger.debug(f"> Video {item.video_id}, job={item.job.id if item.job else None}")
-
-        if item.job:
-            logger.debug(f"Job exists for {item.video_id}, id={item.job.id}")
-            jobs.append(item.job)
-            continue
-
-        logger.debug(f"Creating new job for {item.video_id}")
-        database_item = DatabaseItem(
-            video_id=item.video_id
+    if not source:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown source {item_in.source}",
         )
-        session.add(database_item)
-        print("!"*10, database_item)
-        jobs.append(database_item)
 
-    await session.commit()
+    try:
+        item = source.get_item(item_id=item_in.item_id)
+    except ItemNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Could not find item {item_in.source}:{item_in.item_id}",
+        )
+    
+    try:
+        session.add(item)
+        await session.commit()
+        await session.refresh(item)
+    except IntegrityError as error:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Could not add item {item_in.source}:{item_in.item_id} (already added)",
+        )
 
-    for job in jobs:
-        await session.refresh(job)
+    await add_job(item, session)
 
-        for item in items:
-            if item.video_id == job.video_id:
-                item.job = job
+    return item
 
-    logger.info(f"Created {len(jobs)} jobs(s)")
 
-    await session.close()
-
-    for item in items:
-        task = DownloadTask(item)
-        background_tasks.add_task(task.run)
-
+@router.get(
+    "/items/{source}",
+    response_model=list[ItemOut],
+    response_model_by_alias=False,
+)
+async def items_by_source(
+    items: list[Item] = Depends(get_items),
+):
     return items
 
 
 @router.get(
-    "/videos/{video_id}/job",
-    response_model=DatabaseItemOut,
+    "/items/{source}/{item_id}",
+    response_model=ItemOutWithJobs,
     response_model_by_alias=False,
 )
-async def job(
-    job: DatabaseItem = Depends(get_job),
+async def item(
+    item: Item = Depends(get_item),
+):
+    return item
+
+
+@router.delete(
+    "/items/{source}/{item_id}",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def delete_item(
+    session: Session = Depends(get_session),
+    item: Item = Depends(get_item),
+):
+    logger.info(f"Deleting item #{item.id} (video {item.source}:{item.item_id})")
+    await session.delete(item)
+    await session.commit()
+    return {"detail": f"Deleted item {item}"}
+
+
+@router.get(
+    "/items/{source}/{item_id}/retry",
+    response_model=JobOut,
+    response_model_by_alias=False,
+)
+async def item(
+    job: Job = Depends(add_job),
 ):
     return job
 
 
 @router.get(
-    "/videos/{video_id}/job/clear",
-    status_code=status.HTTP_202_ACCEPTED,
+    "/jobs",
+    response_model=list[JobOutWithItem],
+    response_model_by_alias=False,
 )
-async def clear_job(
-    session: Session = Depends(get_session),
-    job: DatabaseItem = Depends(get_job),
+async def jobs(
+    jobs: list[Job] = Depends(get_jobs()),
 ):
-    logger.info(f"Deleting job #{job.id} (video {job.video_id})")
-    await session.delete(job)
-    await session.commit()
-    return {"detail": f"Deleted download job (#{job.id})"}
+    return jobs
+
+
+@router.get(
+    "/jobs/start",
+    response_model=list[JobOutWithItem],
+    response_model_by_alias=False,
+)
+async def jobs(
+    jobs: list[Job] = Depends(get_started_jobs),
+):
+    return jobs
