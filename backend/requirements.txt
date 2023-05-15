@@ -2,7 +2,7 @@ aiosqlite==0.17.0
 fastapi==0.79.0
 gotify==0.5.0
 loguru==0.6.0
-lz==0.11.1
+lz==3.0.0
 pydantic==1.9.2
 python-dotenv==0.20.0
 python-socketio==5.7.1
