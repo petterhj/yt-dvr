@@ -9,4 +9,4 @@ python-socketio==5.7.1
 python-youtube==0.8.2
 sqlmodel==0.0.6
 uvicorn[standard]==0.18.2
-yt-dlp==2023.3.4
+yt-dlp==2023.7.6
